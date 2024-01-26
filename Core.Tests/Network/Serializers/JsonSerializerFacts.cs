@@ -19,6 +19,10 @@ public class JsonSerializerFacts {
 
     [TestMethod]
     public void TestSerializePacket() {
+        var packet = new OkPacket();
+        var bytes = serializer.Serialize(packet);
+        var s = Encoding.UTF8.GetString(bytes);
+        Assert.AreEqual(json, s);
     }
 
     [TestMethod]
@@ -26,5 +30,8 @@ public class JsonSerializerFacts {
         var bytes = Encoding.UTF8.GetBytes(json);
         var packet = serializer.Deserialize(bytes);
         Assert.AreEqual(PacketIdsExtension.OkPacket, packet.PacketId);
+        Assert.AreEqual(typeof(OkPacket), packet.GetType());
+        Assert.AreEqual(packet.SessionId, new Guid());
+        Assert.IsNull((packet as OkPacket)!.Result);
     }
 }

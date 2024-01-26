@@ -18,7 +18,9 @@ public class JsonSerializer(IPacketRegistry packetRegistry) : ISerializer {
     }
 
     public byte[] Serialize(IPacket packet) {
-        var json = JsonConvert.SerializeObject(packet);
+        var json = JsonConvert.SerializeObject(packet, new JsonSerializerSettings() {
+            NullValueHandling = NullValueHandling.Ignore
+        });
         return Encoding.UTF8.GetBytes(json);
     }
 

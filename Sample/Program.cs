@@ -16,6 +16,6 @@ builder.Services.AddSingleton<ILoginService, LoginService>();
 
 var (app, _) = builder.Build();
 app.UseStateAuth();
-app.RegisterPackets(new PacketIdsExtension());
+
 
 await app.StartAsync(port);

@@ -78,15 +78,15 @@ public class ServerApplication(IProtocolLayer protocolLayer,
         return this;
     }
 
-    public void RegisterPackets(PacketIds ids) {
+    public void RegisterPackets() {
         var map = new Dictionary<int, Type>();
-        // ids can be subclassed to add more packet types, need to account for these and use reflection to get all const int values to map to all implementations of IPacket across the current assembly as well as this one
-        var packetTypes = Assembly.GetEntryAssembly()?.GetTypes()
-            .Union(Assembly.GetExecutingAssembly().GetTypes().Where(t => t.GetInterface(nameof(IPacket)) != null))
-            .Where(t => t.IsClass && !t.IsAbstract && t.GetInterface(nameof(IPacket)) != null)
+
+        var packetTypes = AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(a => a.GetTypes()
+            .Where(t => t.IsClass && !t.IsAbstract && t.GetInterface(nameof(IPacket)) != null))
             .ToList();
 
-        packetTypes?.ForEach(t => {
+        packetTypes.ForEach(t => {
             var instance = Activator.CreateInstance(t) as IPacket;
             var packetId = instance.PacketId;
             map.Add(packetId, t);
