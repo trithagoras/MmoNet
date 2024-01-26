@@ -46,7 +46,7 @@ public static class ServiceCollectionExtensions {
     }
 
     public static ServiceCollection AddPacketRegistry<T>(this ServiceCollection services) where T : class, IPacketRegistry {
-        services.AddSingleton<T>();
+        services.AddSingleton<IPacketRegistry, T>();
         return services;
     }
 }
