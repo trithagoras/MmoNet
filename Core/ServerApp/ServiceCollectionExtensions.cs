@@ -1,7 +1,9 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using MmoNet.Core.Network.Packets;
 using MmoNet.Core.Network.Protocols;
 using MmoNet.Core.Network.Serializers;
 using MmoNet.Core.PlayerSessions;
+using System.Reflection;
 
 namespace MmoNet.Core.ServerApp;
 public static class ServiceCollectionExtensions {
@@ -32,6 +34,19 @@ public static class ServiceCollectionExtensions {
 
     public static ServiceCollection AddSerializer(this ServiceCollection services, ISerializer serializer) {
         services.AddSingleton(serializer);
+        return services;
+    }
+
+    public static ServiceCollection AddControllers(this ServiceCollection services) {
+        var controllers = Assembly.GetEntryAssembly()?.GetTypes()
+            .Where(t => t.IsSubclassOf(typeof(Controller)))
+            .ToList();
+        controllers?.ForEach(c => services.AddSingleton(c));
+        return services;
+    }
+
+    public static ServiceCollection AddPacketRegistry<T>(this ServiceCollection services) where T : class, IPacketRegistry {
+        services.AddSingleton<T>();
         return services;
     }
 }

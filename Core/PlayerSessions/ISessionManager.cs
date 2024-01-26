@@ -1,5 +1,8 @@
 ﻿
 namespace MmoNet.Core.PlayerSessions; 
 public interface ISessionManager {
-    public Dictionary<ISessionId, IPlayerSession> SessionMap { get; }
+    public Dictionary<Guid, ISession> SessionMap { get; }
+    //public ISession GetSession(Guid id);
+    //public void AddSession(ISession session);
+    //public void RemoveSession(Guid id);
 }

@@ -1,7 +1,11 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using MmoNet.Core.Network.Protocols;
 using MmoNet.Core.Network.Serializers;
 using MmoNet.Core.PlayerSessions;
+using System.Reflection;
+using System;
+using MmoNet.Core.Network.Packets;
 
 namespace MmoNet.Core.ServerApp;
 public class ServerBuilder {
@@ -11,18 +15,14 @@ public class ServerBuilder {
         Services = new();
     }
 
-    public ServerApplication Build() {
+    public (ServerApplication, ServiceProvider) Build() {
+        Services.AddLogging(o => o.AddConsole());
+        Services.AddPacketRegistry<PacketRegistry>();
+        Services.AddControllers();
+
         var serviceProvider = Services.BuildServiceProvider();
-
-        // initialize core components with the service provider
-        var protocolLayer = serviceProvider.GetRequiredService<IProtocolLayer>();
-        var sessionManager = serviceProvider.GetRequiredService<ISessionManager>();
-        var serializer = serviceProvider.GetRequiredService<ISerializer>();
-
-        var serverApplication = new ServerApplication(protocolLayer, serializer, sessionManager);
-
-        // ...
-
-        return serverApplication;
+        var serverApplication = ActivatorUtilities.CreateInstance<ServerApplication>(serviceProvider, serviceProvider);
+        serverApplication.MapControllers();
+        return (serverApplication, serviceProvider);
     }
 }
