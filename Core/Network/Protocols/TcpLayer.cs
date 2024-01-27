@@ -10,16 +10,22 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
     TcpListener listener = null!;
     readonly ISerializer serializer = serializer;
     readonly ILogger<TcpLayer> logger = logger;
+    public int Port => ((IPEndPoint)listener.LocalEndpoint).Port;
 
     public event EventHandler<IPacket> OnPacketReceived;
     public event EventHandler<IPacket> OnPacketSent;
     public event EventHandler<ISession> OnConnected;
 
+    readonly Dictionary<Guid, TcpClient> sessionClientMap = [];
+
     public async Task SendAsync(ISession session, IPacket packet) {
-        //var client = session.Client;
-        //var stream = client.GetStream();
-        //var bytes = await packet.Serialize();
-        //await stream.WriteAsync(bytes);
+        var client = sessionClientMap[session.Id];
+        var stream = client.GetStream();
+        var bytes = serializer.Serialize(packet);
+        await stream.WriteAsync(bytes);
+        await stream.FlushAsync();
+        logger.BeginScope("SessionId: {sessionId}", session.Id);
+        logger.LogInformation("Sent packet to session {session}: {packet}", session.Id, packet);
         OnPacketSent?.Invoke(this, packet);
     }
 
@@ -30,8 +36,9 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
         while (true) {
             var client = await listener.AcceptTcpClientAsync();
             var session = new PlayerSession(Guid.NewGuid(), client);
-            OnConnected?.Invoke(this, session);
             sessionManager.SessionMap.Add(session.Id, session);
+            sessionClientMap.Add(session.Id, client);
+            OnConnected?.Invoke(this, session);
             StartClientAsync(client, session);
         }
     }
@@ -51,6 +58,7 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
         }
 
         sessionManager.SessionMap.Remove(session.Id);
+        sessionClientMap.Remove(session.Id);
         logger.LogInformation("Client {sessionId} has disconnected.", session.Id);
     }
 

@@ -28,7 +28,12 @@ public class ServerApplication(IProtocolLayer protocolLayer,
     readonly List<IMiddleware> middlewares = [];
 
     public async Task StartAsync(int port) {
+        protocolLayer.OnConnected += AssignId;
         await protocolLayer.StartAsync(port);
+    }
+
+    public async Task StopAsync() {
+        await protocolLayer.StopAsync();
     }
 
     public void AddMiddleware<T>() where T : IMiddleware, new() {
@@ -113,5 +118,12 @@ public class ServerApplication(IProtocolLayer protocolLayer,
 
         var controller = serviceProvider.GetRequiredService(value.DeclaringType) as Controller;
         value.Invoke(controller, new object[] { packet });
+    }
+
+    void AssignId(object? sender, ISession session) {
+        var packet = new IdPacket() {
+            SessionId = session.Id
+        };
+        protocolLayer.SendAsync(session, packet);
     }
 }
