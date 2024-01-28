@@ -10,4 +10,5 @@ public interface IProtocolLayer {
     public event EventHandler<IPacket> OnPacketReceived;
     public event EventHandler<IPacket> OnPacketSent;
     public event EventHandler<ISession> OnConnected;
+    public event EventHandler<ISession> OnDisconnected;
 }

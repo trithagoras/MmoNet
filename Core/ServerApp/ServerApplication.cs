@@ -9,6 +9,7 @@ using MmoNet.Core.Network.Packets;
 using MmoNet.Core.Network.Protocols;
 using MmoNet.Core.Network.Serializers;
 using MmoNet.Core.PlayerSessions;
+using static System.Collections.Specialized.BitVector32;
 
 namespace MmoNet.Core.ServerApp; 
 public class ServerApplication(IProtocolLayer protocolLayer,
@@ -28,7 +29,9 @@ public class ServerApplication(IProtocolLayer protocolLayer,
     readonly List<IMiddleware> middlewares = [];
 
     public async Task StartAsync(int port) {
-        protocolLayer.OnConnected += AssignId;
+        protocolLayer.OnConnected += NewConnection;
+        protocolLayer.OnDisconnected += Disconnection;
+        protocolLayer.OnPacketSent += PacketSent;
         await protocolLayer.StartAsync(port);
     }
 
@@ -51,7 +54,12 @@ public class ServerApplication(IProtocolLayer protocolLayer,
     }
 
     public ServerApplication MapControllers() {
-        var controllers = Assembly.GetEntryAssembly()?.GetTypes()
+        //var controllers = Assembly.GetEntryAssembly()?.GetTypes()
+        //    .Where(t => t.IsSubclassOf(typeof(Controller)))
+        //    .Select(t => ActivatorUtilities.CreateInstance(serviceProvider, t) as Controller)
+        //    .ToList();
+        var controllers = AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(a => a.GetTypes())
             .Where(t => t.IsSubclassOf(typeof(Controller)))
             .Select(t => ActivatorUtilities.CreateInstance(serviceProvider, t) as Controller)
             .ToList();
@@ -104,29 +112,50 @@ public class ServerApplication(IProtocolLayer protocolLayer,
         var session = sessionManager.SessionMap.Values.FirstOrDefault(s => s.Id == packet.SessionId);
         if (session == null) {
             // log warning
-            logger.LogWarning("Received packet with invalid session id.");
+            logger.LogWarning("Received packet with invalid session id {sessionId}", packet.SessionId);
             return;
+        } else {
+            logger.LogInformation("Packet received from session {session}: {packet}", session.Id, packet);
         }
 
         if (!ActionMap.TryGetValue(packet.PacketId, out MethodInfo? value)) {
             logger.LogWarning("Received packet with invalid packet id.");
-            // log warning
             return;
         }
 
         var controller = serviceProvider.GetRequiredService(value.DeclaringType) as Controller;
         if (sender is IProtocolLayer layer) {
             Task.Run(async () => {
-                var response = await (Task<IPacket>)value.Invoke(controller, new object[] { packet });
+                IPacket response = null!;
+                if (value.GetParameters().Any(p => p.GetCustomAttribute<FromSessionAttribute>() != null)) {
+                    response = await (Task<IPacket>)value.Invoke(controller, new object[] { packet, session });
+                } else {
+                    response = await (Task<IPacket>)value.Invoke(controller, new object[] { packet });
+                }
                 await layer.SendAsync(session, response);
             }).Wait();
         }
     }
 
-    void AssignId(object? sender, ISession session) {
+    void Disconnection(object? sender, ISession session) {
+        sessionManager.SessionMap.Remove(session.Id);
+        logger.LogInformation("Client {sessionId} has disconnected.", session.Id);
+    }
+
+    void NewConnection(object? sender, ISession session) {
+        logger.LogInformation("Client {sessionId} has connected.", session.Id);
+        AssignId(session);
+        sessionManager.SessionMap.Add(session.Id, session);
+    }
+
+    void AssignId(ISession session) {
         var packet = new IdPacket() {
             SessionId = session.Id
         };
         protocolLayer.SendAsync(session, packet);
+    }
+
+    void PacketSent(object? sender, IPacket packet) {
+        logger.LogInformation("Sent packet to session {session}: {packet}", packet.SessionId, packet);
     }
 }

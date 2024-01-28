@@ -15,6 +15,7 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
     public event EventHandler<IPacket> OnPacketReceived;
     public event EventHandler<IPacket> OnPacketSent;
     public event EventHandler<ISession> OnConnected;
+    public event EventHandler<ISession> OnDisconnected;
 
     readonly Dictionary<Guid, TcpClient> sessionClientMap = [];
 
@@ -24,18 +25,16 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
         var bytes = serializer.Serialize(packet);
         await stream.WriteAsync(bytes);
         await stream.FlushAsync();
-        logger.LogInformation("Sent packet to session {session}: {packet}", session.Id, packet);
         OnPacketSent?.Invoke(this, packet);
     }
 
     public async Task StartAsync(int port) {
         listener = new(IPAddress.Any, port);
         listener.Start();
-        logger.LogInformation("Server listening on port {port}", ((IPEndPoint)listener.LocalEndpoint).Port);
+        logger.LogInformation("Server listening on port {port}", Port);
         while (true) {
             var client = await listener.AcceptTcpClientAsync();
             var session = new PlayerSession(Guid.NewGuid(), client);
-            sessionManager.SessionMap.Add(session.Id, session);
             sessionClientMap.Add(session.Id, client);
             OnConnected?.Invoke(this, session);
             _ = StartClientAsync(client, session)
@@ -52,7 +51,6 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
 
     async Task StartClientAsync(TcpClient client, ISession session) {
         var stream = client.GetStream();
-        logger.LogInformation("Client {sessionId} has connected.", session.Id);
 
         while (true) {
             var bytes = new byte[1024];
@@ -61,7 +59,6 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
                 break;
             }
             var packet = serializer.Deserialize(bytes[..length]);
-            logger.LogInformation("Packet received from session {session}: {packet}", session.Id, packet);
             OnPacketReceived?.Invoke(this, packet);
         }
 
@@ -69,9 +66,8 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
     }
 
     void StopClient(TcpClient client, ISession session) {
-        sessionManager.SessionMap.Remove(session.Id);
+        OnDisconnected?.Invoke(this, session);
         sessionClientMap.Remove(session.Id);
-        logger.LogInformation("Client {sessionId} has disconnected.", session.Id);
         client.Close();
     }
 

@@ -38,7 +38,8 @@ public static class ServiceCollectionExtensions {
     }
 
     public static ServiceCollection AddControllers(this ServiceCollection services) {
-        var controllers = Assembly.GetEntryAssembly()?.GetTypes()
+        var controllers = AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(a => a.GetTypes())
             .Where(t => t.IsSubclassOf(typeof(Controller)))
             .ToList();
         controllers?.ForEach(c => services.AddSingleton(c));
