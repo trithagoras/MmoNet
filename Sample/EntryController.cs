@@ -15,18 +15,20 @@ public class EntryController(ILoginService service, ILogger<EntryController> log
     [RequiresState(State.Entry)]
     public async Task<IPacket> Login(LoginPacket packet) {
         var result = await service.LoginAsync(packet.Username, packet.Password);
-        return Ok(result);
+        var session = sessionManager.SessionMap[packet.SessionId];
+        return Ok(result, session);
     }
 
     [RequiresState(State.Any, State.Entry)]
     public async Task<IPacket> Logout(LogoutPacket packet) {
         var result = await service.LogoutAsync("");
-        return Ok(result);
+        var session = sessionManager.SessionMap[packet.SessionId];
+        return Ok(result, session);
     }
 
     public async Task<IPacket> TestOkPacket(OkPacket packet) {
         var session = sessionManager.SessionMap[packet.SessionId];
         logger.LogInformation("{sessionId} received an OkPacket", session.Id);
-        return Ok(packet.Result);
+        return Ok(packet.Result, session);
     }
 }

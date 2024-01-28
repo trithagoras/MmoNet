@@ -24,7 +24,6 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
         var bytes = serializer.Serialize(packet);
         await stream.WriteAsync(bytes);
         await stream.FlushAsync();
-        logger.BeginScope("SessionId: {sessionId}", session.Id);
         logger.LogInformation("Sent packet to session {session}: {packet}", session.Id, packet);
         OnPacketSent?.Invoke(this, packet);
     }
@@ -62,6 +61,7 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
                 break;
             }
             var packet = serializer.Deserialize(bytes[..length]);
+            logger.LogInformation("Packet received from session {session}: {packet}", session.Id, packet);
             OnPacketReceived?.Invoke(this, packet);
         }
 

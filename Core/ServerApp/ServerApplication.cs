@@ -101,8 +101,6 @@ public class ServerApplication(IProtocolLayer protocolLayer,
     }
 
     void DispatchPacket(object? sender, IPacket packet) {
-        logger.BeginScope("SessionId: {sessionId}", packet.SessionId);
-
         var session = sessionManager.SessionMap.Values.FirstOrDefault(s => s.Id == packet.SessionId);
         if (session == null) {
             // log warning
@@ -117,7 +115,12 @@ public class ServerApplication(IProtocolLayer protocolLayer,
         }
 
         var controller = serviceProvider.GetRequiredService(value.DeclaringType) as Controller;
-        value.Invoke(controller, new object[] { packet });
+        if (sender is IProtocolLayer layer) {
+            Task.Run(async () => {
+                var response = await (Task<IPacket>)value.Invoke(controller, new object[] { packet });
+                await layer.SendAsync(session, response);
+            }).Wait();
+        }
     }
 
     void AssignId(object? sender, ISession session) {
