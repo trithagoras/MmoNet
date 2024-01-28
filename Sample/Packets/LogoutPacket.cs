@@ -1,6 +1,6 @@
 ﻿using MmoNet.Shared.Packets;
 
 namespace Sample.Packets;
-[PacketId(5)]
+[PacketId(((int)PacketIds.LogoutPacket))]
 public class LogoutPacket : Packet {
 }

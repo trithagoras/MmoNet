@@ -17,8 +17,8 @@ public class ServerBuilder {
 
         var serviceProvider = Services.BuildServiceProvider();
         var app = ActivatorUtilities.CreateInstance<ServerApplication>(serviceProvider, serviceProvider);
-        app.MapControllers();
         app.RegisterPackets();
+        app.MapControllers();
         return (app, serviceProvider);
     }
 }
