@@ -1,6 +1,6 @@
-﻿using MmoNet.Core.Network.Packets;
+﻿using MmoNet.Shared.Packets;
 
-namespace Sample.Packets; 
+namespace Sample.Packets;
+[PacketId(5)]
 public class LogoutPacket : Packet {
-    public override int PacketId => PacketIdsExtension.LogoutPacket;
 }

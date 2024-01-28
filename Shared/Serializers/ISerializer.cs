@@ -1,7 +1,6 @@
-﻿
-using MmoNet.Core.Network.Packets;
+﻿using MmoNet.Shared.Packets;
 
-namespace MmoNet.Core.Network.Serializers; 
+namespace MmoNet.Shared.Serializers; 
 public interface ISerializer {
     public byte[] Serialize(IPacket packet);
     public IPacket Deserialize(byte[] bytes);

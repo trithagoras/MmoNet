@@ -1,11 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MmoNet.Core.Network.Protocols;
-using MmoNet.Core.Network.Serializers;
-using MmoNet.Core.Sessions;
-using System.Reflection;
-using System;
-using MmoNet.Core.Network.Packets;
+using MmoNet.Shared.Packets;
 
 namespace MmoNet.Core.ServerApp;
 public class ServerBuilder {

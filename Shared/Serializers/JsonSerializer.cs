@@ -1,11 +1,10 @@
-﻿
-using MmoNet.Core.Network.Packets;
+﻿using MmoNet.Shared.Packets;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using System.Text;
 
-namespace MmoNet.Core.Network.Serializers;
+namespace MmoNet.Shared.Serializers;
 public class JsonSerializer(IPacketRegistry packetRegistry) : ISerializer {
     readonly IPacketRegistry packetRegistry = packetRegistry;
 

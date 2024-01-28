@@ -1,6 +1,6 @@
-﻿
+﻿using MmoNet.Shared.Packets;
 
-namespace MmoNet.Core.Network.Packets;
+namespace MmoNet.Shared.Packets;
 public class PacketRegistry : IPacketRegistry {
     private IDictionary<int, Type> packetTypes = new Dictionary<int, Type>();
 

@@ -1,5 +1,5 @@
 ﻿
-using MmoNet.Core.Network.Packets;
+using MmoNet.Shared.Packets;
 
 namespace MmoNet.Core.Middlewares;
 public interface IMiddleware {

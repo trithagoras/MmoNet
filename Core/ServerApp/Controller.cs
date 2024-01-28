@@ -1,6 +1,4 @@
-﻿
-
-using MmoNet.Core.Network.Packets;
+﻿using MmoNet.Shared.Packets;
 using MmoNet.Core.Sessions;
 
 namespace MmoNet.Core.ServerApp; 

@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-using MmoNet.Core.Network.Packets;
+using MmoNet.Shared.Packets;
 using MmoNet.Core.Sessions;
 using MmoNet.Core.ServerApp;
 using MmoNet.Core.States;

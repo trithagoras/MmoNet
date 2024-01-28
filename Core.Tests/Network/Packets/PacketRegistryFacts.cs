@@ -1,12 +1,10 @@
 ﻿
 using Microsoft.Extensions.DependencyInjection;
-using MmoNet.Core.Network.Packets;
 using MmoNet.Core.Network.Protocols;
-using MmoNet.Core.Network.Serializers;
+using MmoNet.Shared.Serializers;
 using MmoNet.Core.Sessions;
 using MmoNet.Core.ServerApp;
-using Sample.Services;
-using System.Reflection;
+using MmoNet.Shared.Packets;
 
 namespace MmoNet.Core.Tests.Network.Packets;
 [TestClass]
@@ -23,10 +21,10 @@ public class PacketRegistryFacts {
 
         var registry = provider.GetRequiredService<IPacketRegistry>();
         try {
-            registry.GetPacketType(PacketIdsExtension.TestPacketId);
-            registry.GetPacketType(PacketIdsExtension.OkPacket);
-            registry.GetPacketType(PacketIdsExtension.DenyPacket);
-            registry.GetPacketType(PacketIdsExtension.IdPacket);
+            registry.GetPacketType(registry.GetPacketId<TestPacket>());
+            registry.GetPacketType(registry.GetPacketId<OkPacket>());
+            registry.GetPacketType(registry.GetPacketId<DenyPacket>());
+            registry.GetPacketType(registry.GetPacketId<IdPacket>());
         } catch (Exception e) {
             Assert.Fail(e.Message);
         }
@@ -40,10 +38,10 @@ public class PacketRegistryFacts {
         registry.RegisterPacket<DenyPacket>();
         registry.RegisterPacket<IdPacket>();
         try {
-            registry.GetPacketType(PacketIdsExtension.TestPacketId);
-            registry.GetPacketType(PacketIdsExtension.OkPacket);
-            registry.GetPacketType(PacketIdsExtension.DenyPacket);
-            registry.GetPacketType(PacketIdsExtension.IdPacket);
+            registry.GetPacketType(registry.GetPacketId<TestPacket>());
+            registry.GetPacketType(registry.GetPacketId<OkPacket>());
+            registry.GetPacketType(registry.GetPacketId<DenyPacket>());
+            registry.GetPacketType(registry.GetPacketId<IdPacket>());
         } catch (Exception e) {
             Assert.Fail(e.Message);
         }
@@ -60,13 +58,13 @@ public class PacketRegistryFacts {
     public void TestGetPacketId() {
         var registry = new PacketRegistry();
         registry.RegisterPacket<TestPacket>();
-        Assert.AreEqual(PacketIdsExtension.TestPacketId, registry.GetPacketId<TestPacket>());
+        Assert.AreEqual(5, registry.GetPacketId<TestPacket>());
     }
 
     [TestMethod]
     public void TestGetPacketType() {
         var registry = new PacketRegistry();
         registry.RegisterPacket<TestPacket>();
-        Assert.AreEqual(typeof(TestPacket), registry.GetPacketType(PacketIdsExtension.TestPacketId));
+        Assert.AreEqual(typeof(TestPacket), registry.GetPacketType(registry.GetPacketId<TestPacket>()));
     }
 }

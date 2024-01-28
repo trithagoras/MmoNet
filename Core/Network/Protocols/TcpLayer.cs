@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
-using MmoNet.Core.Network.Packets;
-using MmoNet.Core.Network.Serializers;
+using MmoNet.Shared.Packets;
+using MmoNet.Shared.Serializers;
 using MmoNet.Core.Sessions;
 using System.Net;
 using System.Net.Sockets;

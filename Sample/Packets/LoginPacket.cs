@@ -1,9 +1,8 @@
-﻿
-using MmoNet.Core.Network.Packets;
+﻿using MmoNet.Shared.Packets;
 
-namespace Sample.Packets; 
+namespace Sample.Packets;
+[PacketId(4)]
 public class LoginPacket : Packet {
-    public override int PacketId => PacketIdsExtension.LoginPacket;
     public required string Username { get; set; }
     public required string Password { get; set; }
 }

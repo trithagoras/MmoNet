@@ -5,10 +5,10 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MmoNet.Core.Middlewares;
-using MmoNet.Core.Network.Packets;
 using MmoNet.Core.Network.Protocols;
-using MmoNet.Core.Network.Serializers;
+using MmoNet.Shared.Serializers;
 using MmoNet.Core.Sessions;
+using MmoNet.Shared.Packets;
 using static System.Collections.Specialized.BitVector32;
 
 namespace MmoNet.Core.ServerApp; 
@@ -92,14 +92,18 @@ public class ServerApplication(IProtocolLayer protocolLayer,
 
         var packetTypes = AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(a => a.GetTypes()
-            .Where(t => t.IsClass && !t.IsAbstract && t.GetInterface(nameof(IPacket)) != null))
+            .Where(t => t.IsClass && !t.IsAbstract && typeof(IPacket).IsAssignableFrom(t)))
             .ToList();
 
-        packetTypes.ForEach(t => {
-            var instance = Activator.CreateInstance(t) as IPacket;
-            var packetId = instance.PacketId;
-            map.Add(packetId, t);
-        });
+        foreach (var t in packetTypes) {
+            var packetIdAttr = t.GetCustomAttribute<PacketIdAttribute>()
+                ?? throw new InvalidOperationException($"Packet type {t.Name} does not have a PacketId attribute.");
+            if (map.TryGetValue(packetIdAttr.Id, out Type? value)) {
+                var existingType = value;
+                throw new InvalidOperationException($"Attempted to assign packet id {packetIdAttr.Id} to {t.Name}, but is already assigned to packet type {existingType}.");
+            }
+            map.Add(packetIdAttr.Id, t);
+        }
 
         packetRegistry.RegisterPackets(map);
     }
