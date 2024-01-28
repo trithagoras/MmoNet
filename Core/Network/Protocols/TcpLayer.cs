@@ -39,11 +39,19 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
             sessionManager.SessionMap.Add(session.Id, session);
             sessionClientMap.Add(session.Id, client);
             OnConnected?.Invoke(this, session);
-            StartClientAsync(client, session);
+            _ = StartClientAsync(client, session)
+                .ContinueWith(t => {
+                    HandleClientError(t.Exception!, client, session);
+                }, TaskContinuationOptions.OnlyOnFaulted);
         }
     }
 
-    public async Task StartClientAsync(TcpClient client, ISession session) {
+    public async Task StopAsync() {
+        listener.Stop();
+        listener.Dispose();
+    }
+
+    async Task StartClientAsync(TcpClient client, ISession session) {
         var stream = client.GetStream();
         logger.LogInformation("Client {sessionId} has connected.", session.Id);
 
@@ -57,15 +65,18 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
             OnPacketReceived?.Invoke(this, packet);
         }
 
+        StopClient(client, session);
+    }
+
+    void StopClient(TcpClient client, ISession session) {
         sessionManager.SessionMap.Remove(session.Id);
         sessionClientMap.Remove(session.Id);
         logger.LogInformation("Client {sessionId} has disconnected.", session.Id);
+        client.Close();
     }
 
-
-
-    public async Task StopAsync() {
-        listener.Stop();
-        listener.Dispose();
+    void HandleClientError(Exception e, TcpClient client, ISession session) {
+        logger.LogError(e, "Error in StartClientAsync from {sessionId}", session.Id);
+        StopClient(client, session);
     }
 }

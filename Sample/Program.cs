@@ -6,7 +6,7 @@ using MmoNet.Core.ServerApp;
 using Sample.Packets;
 using Sample.Services;
 
-var port = 0;
+var port = 42523;
 
 var builder = new ServerBuilder();
 builder.Services.AddProtocolLayer<TcpLayer>();
