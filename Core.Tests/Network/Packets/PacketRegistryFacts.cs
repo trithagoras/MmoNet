@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MmoNet.Core.Network.Packets;
 using MmoNet.Core.Network.Protocols;
 using MmoNet.Core.Network.Serializers;
-using MmoNet.Core.PlayerSessions;
+using MmoNet.Core.Sessions;
 using MmoNet.Core.ServerApp;
 using Sample.Services;
 using System.Reflection;

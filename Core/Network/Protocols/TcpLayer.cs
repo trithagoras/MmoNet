@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using MmoNet.Core.Network.Packets;
 using MmoNet.Core.Network.Serializers;
-using MmoNet.Core.PlayerSessions;
+using MmoNet.Core.Sessions;
 using System.Net;
 using System.Net.Sockets;
 
@@ -10,6 +10,7 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
     TcpListener listener = null!;
     readonly ISerializer serializer = serializer;
     readonly ILogger<TcpLayer> logger = logger;
+    readonly ISessionManager sessionManager = sessionManager;
     public int Port => ((IPEndPoint)listener.LocalEndpoint).Port;
 
     public event EventHandler<IPacket> OnPacketReceived;
@@ -34,7 +35,7 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
         logger.LogInformation("Server listening on port {port}", Port);
         while (true) {
             var client = await listener.AcceptTcpClientAsync();
-            var session = new PlayerSession(Guid.NewGuid(), client);
+            var session = sessionManager.CreateSession();
             sessionClientMap.Add(session.Id, client);
             OnConnected?.Invoke(this, session);
             _ = StartClientAsync(client, session)

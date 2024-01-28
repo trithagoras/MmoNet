@@ -2,7 +2,7 @@
 using MmoNet.Core.Network.Packets;
 using MmoNet.Core.Network.Protocols;
 using MmoNet.Core.Network.Serializers;
-using MmoNet.Core.PlayerSessions;
+using MmoNet.Core.Sessions;
 using System.Reflection;
 
 namespace MmoNet.Core.ServerApp;

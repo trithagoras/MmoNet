@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using MmoNet.Core.Network.Packets;
-using MmoNet.Core.PlayerSessions;
+using MmoNet.Core.Sessions;
 using MmoNet.Core.ServerApp;
 using MmoNet.Core.States;
 using Sample.Packets;

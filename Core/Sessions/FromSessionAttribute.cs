@@ -1,5 +1,5 @@
 ﻿
-namespace MmoNet.Core.PlayerSessions;
+namespace MmoNet.Core.Sessions;
 
 [AttributeUsage(AttributeTargets.Parameter)]
 public class FromSessionAttribute : Attribute {

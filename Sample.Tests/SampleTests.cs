@@ -2,7 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MmoNet.Core.Network.Packets;
 using MmoNet.Core.Network.Protocols;
 using MmoNet.Core.Network.Serializers;
-using MmoNet.Core.PlayerSessions;
+using MmoNet.Core.Sessions;
 using MmoNet.Core.ServerApp;
 using Sample.Packets;
 using Sample.Services;
@@ -35,7 +35,13 @@ public class SampleTests {
         SampleTests.app = app;
         SampleTests.provider = provider;
 
-        _ = app.StartAsync(port);   // don't await here, we want to run the server in the background
+        _ = app.StartAsync(port)
+            .ContinueWith(t => {
+                t.Exception!.Handle(e => {
+                    Assert.Fail(e.Message);
+                    return true;
+                });
+            }, TaskContinuationOptions.OnlyOnFaulted);
     }
 
     [TestInitialize]
@@ -49,8 +55,16 @@ public class SampleTests {
     }
 
     [TestMethod]
-    public async Task TestConnection() {
+    public async Task TestAssignSessionId() {
         await client.ConnectAsync("localhost", Port);
+        var stream = client.GetStream();
+
+        // read Id packet
+        var bytes = new byte[1024];
+        var length = await stream.ReadAsync(bytes);
+        var packet = Serializer.Deserialize(bytes[..length]);
+        Assert.IsNotNull(packet);
+        Assert.IsTrue(packet is IdPacket);
     }
 
     [TestMethod]

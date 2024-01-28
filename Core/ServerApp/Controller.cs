@@ -1,7 +1,7 @@
 ﻿
 
 using MmoNet.Core.Network.Packets;
-using MmoNet.Core.PlayerSessions;
+using MmoNet.Core.Sessions;
 
 namespace MmoNet.Core.ServerApp; 
 public abstract class Controller {

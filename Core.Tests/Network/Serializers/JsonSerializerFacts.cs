@@ -7,7 +7,7 @@ namespace MmoNet.Core.Tests.Network.Serializers;
 [TestClass]
 public class JsonSerializerFacts {
     ISerializer serializer = null!;
-    readonly string json = $$"""{"PacketId":{{PacketIdsExtension.OkPacket}},"SessionId":"00000000-0000-0000-0000-000000000000"}""";
+    readonly string json = $$"""{"packetId":{{PacketIdsExtension.OkPacket}},"sessionId":"00000000-0000-0000-0000-000000000000"}""";
 
     [TestInitialize]
     public void SetUp() {

@@ -8,7 +8,7 @@ using MmoNet.Core.Middlewares;
 using MmoNet.Core.Network.Packets;
 using MmoNet.Core.Network.Protocols;
 using MmoNet.Core.Network.Serializers;
-using MmoNet.Core.PlayerSessions;
+using MmoNet.Core.Sessions;
 using static System.Collections.Specialized.BitVector32;
 
 namespace MmoNet.Core.ServerApp; 
@@ -54,10 +54,6 @@ public class ServerApplication(IProtocolLayer protocolLayer,
     }
 
     public ServerApplication MapControllers() {
-        //var controllers = Assembly.GetEntryAssembly()?.GetTypes()
-        //    .Where(t => t.IsSubclassOf(typeof(Controller)))
-        //    .Select(t => ActivatorUtilities.CreateInstance(serviceProvider, t) as Controller)
-        //    .ToList();
         var controllers = AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(a => a.GetTypes())
             .Where(t => t.IsSubclassOf(typeof(Controller)))
@@ -109,14 +105,17 @@ public class ServerApplication(IProtocolLayer protocolLayer,
     }
 
     void DispatchPacket(object? sender, IPacket packet) {
-        var session = sessionManager.SessionMap.Values.FirstOrDefault(s => s.Id == packet.SessionId);
-        if (session == null) {
+        ISession session = null!;
+        try {
+            session = sessionManager[packet.SessionId];
+        } catch (KeyNotFoundException) {
             // log warning
             logger.LogWarning("Received packet with invalid session id {sessionId}", packet.SessionId);
             return;
-        } else {
-            logger.LogInformation("Packet received from session {session}: {packet}", session.Id, packet);
         }
+
+        logger.LogInformation("Packet received from session {session}: {packet}", session.Id, packet);
+
 
         if (!ActionMap.TryGetValue(packet.PacketId, out MethodInfo? value)) {
             logger.LogWarning("Received packet with invalid packet id.");
@@ -138,14 +137,14 @@ public class ServerApplication(IProtocolLayer protocolLayer,
     }
 
     void Disconnection(object? sender, ISession session) {
-        sessionManager.SessionMap.Remove(session.Id);
+        sessionManager.RemoveSession(session.Id);
         logger.LogInformation("Client {sessionId} has disconnected.", session.Id);
     }
 
     void NewConnection(object? sender, ISession session) {
+        sessionManager[session.Id] = session;
         logger.LogInformation("Client {sessionId} has connected.", session.Id);
         AssignId(session);
-        sessionManager.SessionMap.Add(session.Id, session);
     }
 
     void AssignId(ISession session) {

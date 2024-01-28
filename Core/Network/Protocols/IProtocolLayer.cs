@@ -1,6 +1,6 @@
 ﻿
 using MmoNet.Core.Network.Packets;
-using MmoNet.Core.PlayerSessions;
+using MmoNet.Core.Sessions;
 
 namespace MmoNet.Core.Network.Protocols; 
 public interface IProtocolLayer {

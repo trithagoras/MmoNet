@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Logging;
 using MmoNet.Core.Network.Protocols;
 using MmoNet.Core.Network.Serializers;
-using MmoNet.Core.PlayerSessions;
+using MmoNet.Core.Sessions;
 using System.Reflection;
 using System;
 using MmoNet.Core.Network.Packets;
