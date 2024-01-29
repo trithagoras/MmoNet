@@ -14,17 +14,17 @@ public class EntryController(ILoginService service, ILogger<EntryController> log
     [RequiresState(State.Entry)]
     public async Task<IPacket> Login(LoginPacket packet, [FromSession] ISession session) {
         var result = await service.LoginAsync(packet.Username, packet.Password);
-        return Ok(result, session);
+        return Ok(session, result);
     }
 
     [RequiresState(State.Any, State.Entry)]
     public async Task<IPacket> Logout(LogoutPacket packet, [FromSession] ISession session) {
         var result = await service.LogoutAsync("");
-        return Ok(result, session);
+        return Ok(session, result);
     }
 
     public async Task<IPacket> TestOkPacket(OkPacket packet, [FromSession] ISession session) {
         logger.LogInformation("{sessionId} received an OkPacket", session.Id);
-        return Ok(packet.Result, session);
+        return Deny(session, "Don't send that packet in this state");
     }
 }

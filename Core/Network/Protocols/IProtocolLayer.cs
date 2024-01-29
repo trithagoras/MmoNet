@@ -7,6 +7,7 @@ public interface IProtocolLayer {
     public Task StartAsync(int port);
     public Task StopAsync();
     public Task SendAsync(ISession session, IPacket packet);
+    public Task BroadcastAsync(ISession session, IPacket packet);
     public event EventHandler<IPacket> OnPacketReceived;
     public event EventHandler<IPacket> OnPacketSent;
     public event EventHandler<ISession> OnConnected;

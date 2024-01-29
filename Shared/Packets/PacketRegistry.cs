@@ -1,12 +1,13 @@
 ﻿using MmoNet.Shared.Packets;
+using System.Reflection;
 
 namespace MmoNet.Shared.Packets;
 public class PacketRegistry : IPacketRegistry {
     private IDictionary<int, Type> packetTypes = new Dictionary<int, Type>();
 
     public void RegisterPacket<T>() where T : IPacket {
-        var packet = Activator.CreateInstance<T>();
-        packetTypes.Add(packet.PacketId, typeof(T));
+        var packetIdAttr = typeof(T).GetCustomAttribute<PacketIdAttribute>();
+        packetTypes.Add(packetIdAttr!.Id, typeof(T));
     }
 
     public void RegisterPackets(IDictionary<int, Type> map) {

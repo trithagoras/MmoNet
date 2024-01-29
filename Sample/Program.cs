@@ -3,7 +3,6 @@ using MmoNet.Core.Network.Protocols;
 using MmoNet.Shared.Serializers;
 using MmoNet.Core.Sessions;
 using MmoNet.Core.ServerApp;
-using Sample.Packets;
 using Sample.Services;
 
 var port = 42523;
@@ -16,6 +15,5 @@ builder.Services.AddSingleton<ILoginService, LoginService>();
 
 var (app, _) = builder.Build();
 app.UseStateAuth();
-
 
 await app.StartAsync(port);

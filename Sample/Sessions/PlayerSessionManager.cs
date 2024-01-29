@@ -4,7 +4,7 @@ namespace MmoNet.Core.Sessions;
 public class PlayerSessionManager : ISessionManager {
     readonly ConcurrentDictionary<Guid, ISession> sessions = new();
 
-    ISession ISessionManager.this[Guid id] { 
+    public ISession this[Guid id] { 
         get => sessions[id];
         set => sessions[id] = value;
     }
