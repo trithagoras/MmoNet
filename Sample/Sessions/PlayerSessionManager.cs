@@ -9,6 +9,8 @@ public class PlayerSessionManager : ISessionManager {
         set => sessions[id] = value;
     }
 
+    public IEnumerable<ISession> Sessions => sessions.Values;
+
     public ISession CreateSession() {
         var session = new PlayerSession();
         return session;

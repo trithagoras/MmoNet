@@ -11,20 +11,13 @@ public class EntryController(ILoginService service, ILogger<EntryController> log
     readonly ILoginService service = service;
     readonly ILogger<EntryController> logger = logger;
 
-    [RequiresState(State.Entry)]
     public async Task<IPacket> Login(LoginPacket packet, [FromSession] ISession session) {
-        var result = await service.LoginAsync(packet.Username, packet.Password);
-        return Ok(session, result);
+        await service.LoginAsync(packet.Username, packet.Password);
+        return Ok(session, "logged in successfully");
     }
 
-    [RequiresState(State.Any, State.Entry)]
-    public async Task<IPacket> Logout(LogoutPacket packet, [FromSession] ISession session) {
-        var result = await service.LogoutAsync("");
-        return Ok(session, result);
-    }
-
-    public async Task<IPacket> TestOkPacket(OkPacket packet, [FromSession] ISession session) {
-        logger.LogInformation("{sessionId} received an OkPacket", session.Id);
-        return Deny(session, "Don't send that packet in this state");
+    public async Task<IPacket> Logout(LogoutPacket _, [FromSession] ISession session) {
+        await service.LogoutAsync("jon");
+        return Ok(session, "logged out successfully");
     }
 }

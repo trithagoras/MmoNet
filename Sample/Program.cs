@@ -4,6 +4,7 @@ using MmoNet.Shared.Serializers;
 using MmoNet.Core.Sessions;
 using MmoNet.Core.ServerApp;
 using Sample.Services;
+using Sample.Exceptions;
 
 var port = 42523;
 
@@ -12,6 +13,7 @@ builder.Services.AddProtocolLayer<TcpLayer>();
 builder.Services.AddSessionManager<PlayerSessionManager>();
 builder.Services.AddSerializer<JsonSerializer>();
 builder.Services.AddSingleton<ILoginService, LoginService>();
+builder.Services.AddExceptionFilter<ExceptionFilter>();
 
 var (app, _) = builder.Build();
 app.UseStateAuth();
