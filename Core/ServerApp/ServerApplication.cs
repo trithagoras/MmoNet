@@ -10,6 +10,7 @@ using MmoNet.Shared.Serializers;
 using MmoNet.Core.Sessions;
 using MmoNet.Shared.Packets;
 using static System.Collections.Specialized.BitVector32;
+using MmoNet.Core.ServerApp.Exceptions;
 
 namespace MmoNet.Core.ServerApp; 
 public class ServerApplication(IProtocolLayer protocolLayer,
@@ -17,7 +18,8 @@ public class ServerApplication(IProtocolLayer protocolLayer,
     ISessionManager sessionManager,
     ILogger<ServerApplication> logger,
     IPacketRegistry packetRegistry,
-    IServiceProvider serviceProvider) {
+    IServiceProvider serviceProvider,
+    IExceptionFilter exceptionFilter) {
     public Dictionary<int, MethodInfo> ActionMap { get; private set; } = [];
 
     readonly IServiceProvider serviceProvider = serviceProvider;
@@ -27,6 +29,7 @@ public class ServerApplication(IProtocolLayer protocolLayer,
     readonly ILogger<ServerApplication> logger = logger;
     readonly IPacketRegistry packetRegistry = packetRegistry;
     readonly List<IMiddleware> middlewares = [];
+    readonly IExceptionFilter exceptionFilter = exceptionFilter;
 
     public async Task StartAsync(int port) {
         protocolLayer.OnConnected += NewConnection;
@@ -108,7 +111,7 @@ public class ServerApplication(IProtocolLayer protocolLayer,
         packetRegistry.RegisterPackets(map);
     }
 
-    void DispatchPacket(object? sender, IPacket packet) {
+    async void DispatchPacket(object? sender, IPacket packet) {
         ISession session = null!;
         try {
             session = sessionManager[packet.SessionId];
@@ -128,7 +131,7 @@ public class ServerApplication(IProtocolLayer protocolLayer,
 
         var controller = serviceProvider.GetRequiredService(value.DeclaringType) as Controller;
         if (sender is IProtocolLayer layer) {
-            Task.Run(async () => {
+            try {
                 IPacket response = null!;
                 if (value.GetParameters().Any(p => p.GetCustomAttribute<FromSessionAttribute>() != null)) {
                     response = await (Task<IPacket>)value.Invoke(controller, new object[] { packet, session });
@@ -136,7 +139,10 @@ public class ServerApplication(IProtocolLayer protocolLayer,
                     response = await (Task<IPacket>)value.Invoke(controller, new object[] { packet });
                 }
                 await layer.SendAsync(session, response);
-            }).Wait();
+            } catch (Exception e) {
+                var exceptionContext = new ActionExceptionContext(session, packet, e);
+                exceptionFilter.OnException(exceptionContext);
+            }
         }
     }
 

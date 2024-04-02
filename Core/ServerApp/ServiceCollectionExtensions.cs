@@ -3,6 +3,7 @@ using MmoNet.Core.Network.Protocols;
 using MmoNet.Shared.Serializers;
 using MmoNet.Core.Sessions;
 using MmoNet.Shared.Packets;
+using MmoNet.Core.ServerApp.Exceptions;
 
 namespace MmoNet.Core.ServerApp;
 public static class ServiceCollectionExtensions {
@@ -47,6 +48,11 @@ public static class ServiceCollectionExtensions {
 
     public static ServiceCollection AddPacketRegistry<T>(this ServiceCollection services) where T : class, IPacketRegistry {
         services.AddSingleton<IPacketRegistry, T>();
+        return services;
+    }
+
+    public static ServiceCollection AddExceptionFilter<T>(this ServiceCollection services) where T : class, IExceptionFilter {
+        services.AddSingleton<IExceptionFilter, T>();
         return services;
     }
 }

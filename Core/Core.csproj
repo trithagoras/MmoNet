@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <PackageId>MmoNet.Core</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.2.3</Version>
     <Authors>Corey Batchler</Authors>
     <Company>Moonlapse</Company>
     <Description>Core server</Description>
