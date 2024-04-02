@@ -4,6 +4,8 @@ MMO.NET is a MMO game server framework for .NET inspired by ASP.NET.
 
 ## Sample setup
 
+This is a simple example of how to create a server using MMO.NET. It's nearly identical to the example setup shown in the `Sample` project.
+
 ```csharp
 var port = 0;
 
@@ -12,6 +14,7 @@ builder.Services.AddProtocolLayer<TcpLayer>();
 builder.Services.AddSessionManager<PlayerSessionManager>();
 builder.Services.AddSerializer<JsonSerializer>();
 builder.Services.AddSingleton<ILoginService, LoginService>();
+builder.Services.AddExceptionFilter<ExceptionFilter>();
 
 var (app, _) = builder.Build();
 app.UseStateAuth();
@@ -40,18 +43,18 @@ public class EntryController(ILoginService service, ILogger<EntryController> log
     readonly ILogger<EntryController> logger = logger;
     readonly ISessionManager sessionManager = sessionManager;
 
-    [RequiresState(State.Entry)]
     public async Task<IPacket> Login(LoginPacket packet) {
-        var result = await service.LoginAsync(packet.Username, packet.Password);
+        await service.LoginAsync(packet.Username, packet.Password);
         return Ok(result);
     }
 
-    [RequiresState(State.Any, State.Entry)]
-    public async Task<IPacket> Logout(LogoutPacket packet) {
-        var result = await service.LogoutAsync("");
+    public async Task<IPacket> Logout(LogoutPacket _) {
+        await service.LogoutAsync();
         return Ok(result);
     }
 }
 ```
 
 This controller has three actions. The `Login` action requires the session to be in the `Entry` state. The `Logout` action requires the session to be in any state except the `Entry` state. These actions are dispatched automatically by the server when a packet is received.
+
+Note that any exceptions thrown in the controller actions will be caught by the server and handled by the `ExceptionFilter` middleware. The `ExceptionFilter` middleware can be used to handle exceptions and send an appropriate response back to the client.
