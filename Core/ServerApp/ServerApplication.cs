@@ -17,7 +17,9 @@ public class ServerApplication(IProtocolLayer protocolLayer,
     IPacketRegistry packetRegistry,
     IServiceProvider serviceProvider,
     IExceptionFilter exceptionFilter) {
-    public Dictionary<int, MethodInfo> ActionMap { get; private set; } = [];
+
+    // Maps packet id to tuple of controller action and required state if applied
+    public Dictionary<int, (MethodInfo, Type?)> ActionMap { get; private set; } = [];
 
     readonly IServiceProvider serviceProvider = serviceProvider;
     readonly IProtocolLayer protocolLayer = protocolLayer;
@@ -61,7 +63,7 @@ public class ServerApplication(IProtocolLayer protocolLayer,
             .ToList();
 
         // each controller action should have a mapping to a unique IPacket implementation
-        var map = new Dictionary<int, MethodInfo>();
+        var map = new Dictionary<int, (MethodInfo, Type?)>();
         controllers?.ForEach(c => {
             var controllerType = c.GetType();
             var controllerActions = controllerType.GetMethods()
@@ -73,11 +75,19 @@ public class ServerApplication(IProtocolLayer protocolLayer,
                 var parameters = a.GetParameters();
                 var param = parameters.SingleOrDefault(p => p.ParameterType.GetInterface(nameof(IPacket)) != null) ?? throw new InvalidOperationException($"Controller action {a.Name} does not have a single parameter of type IPacket."); ;
                 var p = Activator.CreateInstance(param.ParameterType) as IPacket;
-
-                if (map.TryGetValue(p.PacketId, out MethodInfo? value)) {
-                    throw new InvalidOperationException($"Attempted to map Packet type {p.GetType()} to controller action {c}.{a.Name}, but is already mapped to controller action {c}.{value.Name}.");
+                if (map.TryGetValue(p.PacketId, out var value)) {
+                    throw new InvalidOperationException($"Attempted to map Packet type {p.GetType()} to controller action {c}.{a.Name}, but is already mapped to controller action {c}.{value.Item1.Name}.");
                 }
-                map.Add(p.PacketId, a);
+                // check if the controller action has a RequiresState attribute
+                var requiresStateAttribute = a.GetCustomAttributes()
+                    .Where(attr => attr.GetType().IsGenericType && attr.GetType().GetGenericTypeDefinition() == typeof(RequiresStateAttribute<>))
+                    .SingleOrDefault();
+                if (requiresStateAttribute != null) {
+                    var stateType = requiresStateAttribute.GetType().GetGenericArguments()[0];
+                    map.Add(p.PacketId, (a, stateType));
+                    return;
+                }
+                map.Add(p.PacketId, (a, null));
             });
         });
 
@@ -120,19 +130,15 @@ public class ServerApplication(IProtocolLayer protocolLayer,
 
         logger.LogInformation("Packet received from session {session}: {packet}", session.Id, packet);
 
-
-        if (!ActionMap.TryGetValue(packet.PacketId, out MethodInfo? value)) {
+        if (!ActionMap.TryGetValue(packet.PacketId, out var tuple)) {
             logger.LogWarning("Received packet with invalid packet id.");
             return;
         }
+        var (value, stateType) = tuple;
 
         // check if session is in the correct state (as defined by the controller action)
         var controllerType = value.DeclaringType;
-        var requiresStateAttribute = value.GetCustomAttributes()
-            .Where(attr => attr.GetType().IsGenericType && attr.GetType().GetGenericTypeDefinition() == typeof(RequiresStateAttribute<>))
-            .SingleOrDefault();
-        if (requiresStateAttribute != null) {
-            var stateType = requiresStateAttribute.GetType().GetGenericArguments()[0];
+        if (stateType != null) {
             if (session.State.GetType() != stateType) {
                 logger.LogWarning("Session {id} attempted to send a packet ({p}) in an unregistered state ({state})", session.Id, packet, session.State);
                 // let exception filter handle this
