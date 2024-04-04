@@ -1,7 +1,4 @@
-﻿using System;
-using System.Net;
-using System.Net.Sockets;
-using System.Reflection;
+﻿using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MmoNet.Core.Middlewares;
@@ -9,8 +6,8 @@ using MmoNet.Core.Network.Protocols;
 using MmoNet.Shared.Serializers;
 using MmoNet.Core.Sessions;
 using MmoNet.Shared.Packets;
-using static System.Collections.Specialized.BitVector32;
 using MmoNet.Core.ServerApp.Exceptions;
+using MmoNet.Core.States;
 
 namespace MmoNet.Core.ServerApp; 
 public class ServerApplication(IProtocolLayer protocolLayer,
@@ -127,6 +124,22 @@ public class ServerApplication(IProtocolLayer protocolLayer,
         if (!ActionMap.TryGetValue(packet.PacketId, out MethodInfo? value)) {
             logger.LogWarning("Received packet with invalid packet id.");
             return;
+        }
+
+        // check if session is in the correct state (as defined by the controller action)
+        var controllerType = value.DeclaringType;
+        var requiresStateAttribute = value.GetCustomAttributes()
+            .Where(attr => attr.GetType().IsGenericType && attr.GetType().GetGenericTypeDefinition() == typeof(RequiresStateAttribute<>))
+            .SingleOrDefault();
+        if (requiresStateAttribute != null) {
+            var stateType = requiresStateAttribute.GetType().GetGenericArguments()[0];
+            if (session.State.GetType() != stateType) {
+                logger.LogWarning("Session {id} attempted to send a packet ({p}) in an unregistered state ({state})", session.Id, packet, session.State);
+                // let exception filter handle this
+                var exceptionContext = new ActionExceptionContext(session, packet, new InvalidStateException($"Attempted to send unregistered packet {packet} in state {session.State}"));
+                exceptionFilter.OnException(exceptionContext);
+                return;
+            }
         }
 
         var controller = serviceProvider.GetRequiredService(value.DeclaringType) as Controller;
