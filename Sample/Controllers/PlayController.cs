@@ -18,4 +18,9 @@ public class PlayController(ILoginService service, ILogger<EntryController> logg
         await service.LogoutAsync(session, "jon");
         return Ok(session, "logged out successfully");
     }
+
+    // Example of a controller action that can be matched regardless of the session's state
+    public async Task<IPacket> Echo(EchoPacket packet) {
+        return packet;
+    }
 }
