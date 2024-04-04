@@ -16,6 +16,5 @@ builder.Services.AddSingleton<ILoginService, LoginService>();
 builder.Services.AddExceptionFilter<SampleExceptionFilter>();
 
 var (app, _) = builder.Build();
-app.UseStateAuth();
 
 await app.StartAsync(port);

@@ -123,6 +123,8 @@ public class ServerApplication(IProtocolLayer protocolLayer,
 
         if (!ActionMap.TryGetValue(packet.PacketId, out var tuple)) {
             logger.LogWarning("Received packet with invalid packet id.");
+            var exceptionContext = new ActionExceptionContext(session, packet, new InvalidStateException($"Attempted to send unregistered packet {packet} in state {session.State}"));
+            Exception(this, exceptionContext);
             return;
         }
         var (value, stateType) = tuple;
