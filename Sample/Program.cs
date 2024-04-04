@@ -13,7 +13,7 @@ builder.Services.AddProtocolLayer<TcpLayer>();
 builder.Services.AddSessionManager<PlayerSessionManager>();
 builder.Services.AddSerializer<JsonSerializer>();
 builder.Services.AddSingleton<ILoginService, LoginService>();
-builder.Services.AddExceptionFilter<ExceptionFilter>();
+builder.Services.AddExceptionFilter<SampleExceptionFilter>();
 
 var (app, _) = builder.Build();
 app.UseStateAuth();
