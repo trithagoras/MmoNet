@@ -1,7 +1,6 @@
 ﻿using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MmoNet.Core.Middlewares;
 using MmoNet.Core.Network.Protocols;
 using MmoNet.Shared.Serializers;
 using MmoNet.Core.Sessions;
@@ -27,7 +26,6 @@ public class ServerApplication(IProtocolLayer protocolLayer,
     readonly ISessionManager sessionManager = sessionManager;
     readonly ILogger<ServerApplication> logger = logger;
     readonly IPacketRegistry packetRegistry = packetRegistry;
-    readonly List<IMiddleware> middlewares = [];
     readonly IExceptionFilter exceptionFilter = exceptionFilter;
 
     public async Task StartAsync(int port) {
@@ -40,14 +38,6 @@ public class ServerApplication(IProtocolLayer protocolLayer,
 
     public async Task StopAsync() {
         await protocolLayer.StopAsync();
-    }
-
-    public void AddMiddleware<T>() where T : IMiddleware, new() {
-        // Check if a middleware of type T already exists in the list
-        if (middlewares.Any(m => m.GetType() == typeof(T))) {
-            throw new InvalidOperationException($"Middleware of type {typeof(T).Name} is already added.");
-        }
-        middlewares.Add(new T());
     }
 
     public void RunDeferred(int ms, Func<Task> action) {
