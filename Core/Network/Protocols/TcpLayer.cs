@@ -4,6 +4,7 @@ using MmoNet.Shared.Serializers;
 using MmoNet.Core.Sessions;
 using System.Net;
 using System.Net.Sockets;
+using MmoNet.Core.ServerApp.Exceptions;
 
 namespace MmoNet.Core.Network.Protocols; 
 public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, ILogger<TcpLayer> logger) : IProtocolLayer {
@@ -17,6 +18,7 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
     public event EventHandler<IPacket> OnPacketSent;
     public event EventHandler<ISession> OnConnected;
     public event EventHandler<ISession> OnDisconnected;
+    public event EventHandler<ActionExceptionContext> OnException;
 
     readonly Dictionary<Guid, TcpClient> sessionClientMap = [];
 
@@ -52,10 +54,7 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
             var session = sessionManager.CreateSession();
             sessionClientMap.Add(session.Id, client);
             OnConnected?.Invoke(this, session);
-            _ = StartClientAsync(client, session)
-                .ContinueWith(t => {
-                    HandleClientError(t.Exception!, client, session);
-                }, TaskContinuationOptions.OnlyOnFaulted);
+            _ = StartClientAsync(client, session);
         }
     }
 
@@ -68,13 +67,18 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
         var stream = client.GetStream();
 
         while (true) {
-            var bytes = new byte[1024];
-            var length = await stream.ReadAsync(bytes);
-            if (length == 0) {
-                break;
+            try {
+                var bytes = new byte[1024];
+                var length = await stream.ReadAsync(bytes);
+                if (length == 0) {
+                    break;
+                }
+                var packet = serializer.Deserialize(bytes[..length]);
+                OnPacketReceived?.Invoke(this, packet);
+            } catch (Exception e) {
+                HandleClientError(e, client, session);
             }
-            var packet = serializer.Deserialize(bytes[..length]);
-            OnPacketReceived?.Invoke(this, packet);
+
         }
 
         StopClient(client, session);
@@ -86,8 +90,9 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
         client.Close();
     }
 
-    void HandleClientError(Exception e, TcpClient client, ISession session) {
+    void HandleClientError(Exception e, TcpClient _, ISession session) {
         logger.LogError(e, "Error in StartClientAsync from {sessionId}", session.Id);
-        StopClient(client, session);
+        var exceptionContext = new ActionExceptionContext(session, null, e);
+        OnException.Invoke(this, exceptionContext);
     }
 }

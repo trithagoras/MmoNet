@@ -34,6 +34,7 @@ public class ServerApplication(IProtocolLayer protocolLayer,
         protocolLayer.OnConnected += NewConnection;
         protocolLayer.OnDisconnected += Disconnection;
         protocolLayer.OnPacketSent += PacketSent;
+        protocolLayer.OnException += Exception;
         await protocolLayer.StartAsync(port);
     }
 
@@ -141,9 +142,8 @@ public class ServerApplication(IProtocolLayer protocolLayer,
         if (stateType != null) {
             if (session.State.GetType() != stateType) {
                 logger.LogWarning("Session {id} attempted to send a packet ({p}) in an unregistered state ({state})", session.Id, packet, session.State);
-                // let exception filter handle this
                 var exceptionContext = new ActionExceptionContext(session, packet, new InvalidStateException($"Attempted to send unregistered packet {packet} in state {session.State}"));
-                exceptionFilter.OnException(exceptionContext);
+                Exception(this, exceptionContext);
                 return;
             }
         }
@@ -185,5 +185,9 @@ public class ServerApplication(IProtocolLayer protocolLayer,
 
     void PacketSent(object? sender, IPacket packet) {
         logger.LogInformation("Sent packet to session {session}: {packet}", packet.SessionId, packet);
+    }
+
+    void Exception(object? sender, ActionExceptionContext ctx) {
+        exceptionFilter.OnException(ctx);
     }
 }

@@ -1,4 +1,5 @@
 ﻿
+using MmoNet.Core.ServerApp.Exceptions;
 using MmoNet.Core.Sessions;
 using MmoNet.Shared.Packets;
 
@@ -12,4 +13,5 @@ public interface IProtocolLayer {
     public event EventHandler<IPacket> OnPacketSent;
     public event EventHandler<ISession> OnConnected;
     public event EventHandler<ISession> OnDisconnected;
+    public event EventHandler<ActionExceptionContext> OnException;
 }
