@@ -1,13 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <PackageId>MmoNet.Shared</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Authors>Corey Batchler</Authors>
     <Company>Moonlapse</Company>
     <Description>Shared server code</Description>
-    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>MmoNet.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
     <AssemblyName>MmoNet.$(MSBuildProjectName)</AssemblyName>

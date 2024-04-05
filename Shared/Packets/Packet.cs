@@ -1,17 +1,19 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
 
-namespace MmoNet.Shared.Packets;
-public abstract class Packet : IPacket {
-    private int? cachedPacketId;
+namespace MmoNet.Shared.Packets {
+    public abstract class Packet : IPacket {
+        private int? cachedPacketId;
 
-    public int PacketId {
-        get {
-            if (!cachedPacketId.HasValue) {
-                cachedPacketId = GetType().GetCustomAttribute<PacketIdAttribute>()?.Id;
+        public int PacketId {
+            get {
+                if (!cachedPacketId.HasValue) {
+                    cachedPacketId = GetType().GetCustomAttribute<PacketIdAttribute>()?.Id;
+                }
+                return cachedPacketId!.Value;
             }
-            return cachedPacketId!.Value;
         }
-    }
 
-    public Guid SessionId { get; set; }
+        public Guid SessionId { get; set; }
+    }
 }
