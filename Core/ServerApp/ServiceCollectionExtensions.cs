@@ -51,8 +51,18 @@ public static class ServiceCollectionExtensions {
         return services;
     }
 
+    public static ServiceCollection AddPacketRegistry<T>(this ServiceCollection services, T registry) where T : class, IPacketRegistry {
+        services.AddSingleton<IPacketRegistry>(registry);
+        return services;
+    }
+
     public static ServiceCollection AddExceptionFilter<T>(this ServiceCollection services) where T : class, IExceptionFilter {
         services.AddSingleton<IExceptionFilter, T>();
+        return services;
+    }
+
+    public static ServiceCollection AddExceptionFilter<T>(this ServiceCollection services, T filter) where T : class, IExceptionFilter {
+        services.AddSingleton<IExceptionFilter>(filter);
         return services;
     }
 }

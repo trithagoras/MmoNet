@@ -8,9 +8,6 @@ namespace MmoNet.Shared.Packets {
     [AttributeUsage(AttributeTargets.Class)]
     public class PacketIdAttribute : Attribute {
         public PacketIdAttribute(int id) {
-            if (id < 4) {
-                throw new ArgumentException("Packet IDs [1, 2, 3] are reserved for IdPacket, OkPacket and DenyPacket.");
-            }
             Id = id;
         }
 

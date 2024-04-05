@@ -11,8 +11,6 @@ public class ServerBuilder {
     }
 
     public (ServerApplication, ServiceProvider) Build() {
-        Services.AddLogging(o => o.AddConsole());
-        Services.AddPacketRegistry<PacketRegistry>();
         Services.AddControllers();
 
         var serviceProvider = Services.BuildServiceProvider();

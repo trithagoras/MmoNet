@@ -5,6 +5,8 @@ using MmoNet.Core.Sessions;
 using MmoNet.Core.ServerApp;
 using Sample.Services;
 using Sample.Exceptions;
+using Microsoft.Extensions.Logging;
+using MmoNet.Shared.Packets;
 
 var port = 42523;
 
@@ -14,6 +16,8 @@ builder.Services.AddSessionManager<PlayerSessionManager>();
 builder.Services.AddSerializer<JsonSerializer>();
 builder.Services.AddSingleton<ILoginService, LoginService>();
 builder.Services.AddExceptionFilter<SampleExceptionFilter>();
+builder.Services.AddLogging(o => o.AddConsole());
+builder.Services.AddPacketRegistry<PacketRegistry>();
 
 var (app, _) = builder.Build();
 
