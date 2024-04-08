@@ -14,11 +14,11 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
     readonly ISessionManager sessionManager = sessionManager;
     public int Port => ((IPEndPoint)listener.LocalEndpoint).Port;
 
-    public event EventHandler<IPacket> OnPacketReceived;
-    public event EventHandler<IPacket> OnPacketSent;
-    public event EventHandler<ISession> OnConnected;
-    public event EventHandler<ISession> OnDisconnected;
-    public event EventHandler<ActionExceptionContext> OnException;
+    public event EventHandler<IPacket>? OnPacketReceived;
+    public event EventHandler<IPacket>? OnPacketSent;
+    public event EventHandler<ISession>? OnConnected;
+    public event EventHandler<ISession>? OnDisconnected;
+    public event EventHandler<ActionExceptionContext>? OnException;
 
     readonly Dictionary<Guid, TcpClient> sessionClientMap = [];
 
@@ -93,6 +93,6 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
     void HandleClientError(Exception e, TcpClient _, ISession session) {
         logger.LogError(e, "Error in StartClientAsync from {sessionId}", session.Id);
         var exceptionContext = new ActionExceptionContext(session, null, e);
-        OnException.Invoke(this, exceptionContext);
+        OnException?.Invoke(this, exceptionContext);
     }
 }

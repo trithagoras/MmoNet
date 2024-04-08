@@ -8,6 +8,8 @@ using Sample.Packets;
 using Sample.Services;
 using System.Net.Sockets;
 using System.Text;
+using Microsoft.Extensions.Logging;
+using Sample.Exceptions;
 
 namespace MmoNet.Sample.Tests;
 [TestClass]
@@ -29,19 +31,19 @@ public class SampleTests {
         builder.Services.AddSessionManager<PlayerSessionManager>();
         builder.Services.AddSerializer<JsonSerializer>();
         builder.Services.AddSingleton<ILoginService, LoginService>();
+        builder.Services.AddPacketRegistry<PacketRegistry>();
+        builder.Services.AddLogging(o => o.AddConsole());
+        builder.Services.AddExceptionFilter<SampleExceptionFilter>();
 
         var (app, provider) = builder.Build();
-        app.UseStateAuth();
         SampleTests.app = app;
         SampleTests.provider = provider;
 
-        _ = app.StartAsync(port)
-            .ContinueWith(t => {
-                t.Exception!.Handle(e => {
-                    Assert.Fail(e.Message);
-                    return true;
-                });
-            }, TaskContinuationOptions.OnlyOnFaulted);
+        try {
+            await app.StartAsync(port, 20);
+        } catch (Exception e) {
+            Assert.Fail(e.Message);
+        }
     }
 
     [TestInitialize]

@@ -7,6 +7,8 @@ using MmoNet.Core.Sessions;
 using MmoNet.Shared.Packets;
 using MmoNet.Core.ServerApp.Exceptions;
 using MmoNet.Core.States;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace MmoNet.Core.ServerApp; 
 public class ServerApplication(IProtocolLayer protocolLayer,
@@ -17,8 +19,10 @@ public class ServerApplication(IProtocolLayer protocolLayer,
     IServiceProvider serviceProvider,
     IExceptionFilter exceptionFilter) {
 
+    public int TickRate { get; private set; }
+
     // Maps packet id to tuple of controller action and required state if applied
-    public Dictionary<int, (MethodInfo, Type?)> ActionMap { get; private set; } = [];
+    Dictionary<int, (MethodInfo, Type?)> ActionMap { get; set; } = [];
 
     readonly IServiceProvider serviceProvider = serviceProvider;
     readonly IProtocolLayer protocolLayer = protocolLayer;
@@ -27,23 +31,24 @@ public class ServerApplication(IProtocolLayer protocolLayer,
     readonly ILogger<ServerApplication> logger = logger;
     readonly IPacketRegistry packetRegistry = packetRegistry;
     readonly IExceptionFilter exceptionFilter = exceptionFilter;
+    readonly ConcurrentDictionary<Guid, IPacket> incomingPackets = new();
+    readonly ConcurrentDictionary<Guid, IPacket> outgoingPackets = new();
 
-    public async Task StartAsync(int port) {
+    public async Task StartAsync(int port, int tickRate) {
+        TickRate = tickRate;
         protocolLayer.OnConnected += NewConnection;
         protocolLayer.OnDisconnected += Disconnection;
         protocolLayer.OnPacketSent += PacketSent;
+        protocolLayer.OnPacketReceived += (_, p) => HandleIncomingPacket(p);
         protocolLayer.OnException += Exception;
+
+        // begin tick task
+        _ = Task.Run(StartTickLoop);
         await protocolLayer.StartAsync(port);
     }
 
     public async Task StopAsync() {
         await protocolLayer.StopAsync();
-    }
-
-    public void RunDeferred(int ms, Func<Task> action) {
-        var task = Task.Delay(ms).ContinueWith(async _ => {
-            await action();
-        });
     }
 
     public ServerApplication MapControllers() {
@@ -83,7 +88,6 @@ public class ServerApplication(IProtocolLayer protocolLayer,
         });
 
         ActionMap = map;
-        protocolLayer.OnPacketReceived += DispatchPacket;
 
         return this;
     }
@@ -109,7 +113,7 @@ public class ServerApplication(IProtocolLayer protocolLayer,
         packetRegistry.RegisterPackets(map);
     }
 
-    async void DispatchPacket(object? sender, IPacket packet) {
+    async Task DispatchPacket(IPacket packet) {
         ISession session = null!;
         try {
             session = sessionManager[packet.SessionId];
@@ -140,21 +144,50 @@ public class ServerApplication(IProtocolLayer protocolLayer,
             }
         }
 
-        var controller = serviceProvider.GetRequiredService(value.DeclaringType) as Controller;
-        if (sender is IProtocolLayer layer) {
-            try {
-                IPacket response = null!;
-                if (value.GetParameters().Any(p => p.GetCustomAttribute<FromSessionAttribute>() != null)) {
-                    response = await (Task<IPacket>)value.Invoke(controller, new object[] { packet, session });
-                } else {
-                    response = await (Task<IPacket>)value.Invoke(controller, new object[] { packet });
-                }
-                await layer.SendAsync(session, response);
-            } catch (Exception e) {
-                var exceptionContext = new ActionExceptionContext(session, packet, e);
-                exceptionFilter.OnException(exceptionContext);
+        var controller = serviceProvider.GetRequiredService(value.DeclaringType!) as Controller;
+        try {
+            IPacket response = null!;
+            if (value.GetParameters().Any(p => p.GetCustomAttribute<FromSessionAttribute>() != null)) {
+                response = await (Task<IPacket>)value.Invoke(controller, new object[] { packet, session })!;
+            } else {
+                response = await (Task<IPacket>)value.Invoke(controller, new object[] { packet })!;
+            }
+            await protocolLayer.SendAsync(session, response);
+        } catch (Exception e) {
+            var exceptionContext = new ActionExceptionContext(session, packet, e);
+            exceptionFilter.OnException(exceptionContext);
+        }
+    }
+
+    async Task StartTickLoop() {
+        var desiredTickInterval = TimeSpan.FromMilliseconds(1000.0 / TickRate);
+        var stopwatch = Stopwatch.StartNew();
+
+        while (true) {
+            stopwatch.Restart();
+            await TickAsync();
+
+            var elapsed = stopwatch.Elapsed;
+            var diff = desiredTickInterval - elapsed;
+
+            if (diff > TimeSpan.Zero) {
+                await Task.Delay(diff);
+            } else if (diff < TimeSpan.Zero) {
+                logger.LogWarning("Tick time budget exceeded by {diff} milliseconds", -diff.TotalMilliseconds);
             }
         }
+    }
+
+    // Current implementation means that the server will only handle one packet per session per tick
+    void HandleIncomingPacket(IPacket packet) {
+        incomingPackets[packet.SessionId] = packet;
+    }
+
+    async Task TickAsync() {
+        foreach (var packet in incomingPackets.Values) {
+            await DispatchPacket(packet);
+        }
+        incomingPackets.Clear();
     }
 
     void Disconnection(object? sender, ISession session) {

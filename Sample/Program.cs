@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using MmoNet.Shared.Packets;
 
 var port = 42523;
+var tickRate = 20;
 
 var builder = new ServerBuilder();
 builder.Services.AddProtocolLayer<TcpLayer>();
@@ -21,4 +22,4 @@ builder.Services.AddPacketRegistry<PacketRegistry>();
 
 var (app, _) = builder.Build();
 
-await app.StartAsync(port);
+await app.StartAsync(port, tickRate);

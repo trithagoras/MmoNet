@@ -13,7 +13,7 @@ public class SampleExceptionFilter(IProtocolLayer protocol) : ExceptionFilter(pr
                     SessionId = ctx.Session.Id,
                     Result = entryException.Message
                 });
-                break;
+                return;
         }
         base.OnException(ctx);
     }
