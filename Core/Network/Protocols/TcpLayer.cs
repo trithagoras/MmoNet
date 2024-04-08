@@ -66,7 +66,7 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
     async Task StartClientAsync(TcpClient client, ISession session) {
         var stream = client.GetStream();
 
-        while (true) {
+        while (client.Connected) {
             try {
                 var bytes = new byte[1024];
                 var length = await stream.ReadAsync(bytes);
@@ -77,8 +77,8 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
                 OnPacketReceived?.Invoke(this, packet);
             } catch (Exception e) {
                 HandleClientError(e, client, session);
+                return;
             }
-
         }
 
         StopClient(client, session);
@@ -90,8 +90,12 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
         client.Close();
     }
 
-    void HandleClientError(Exception e, TcpClient _, ISession session) {
+    void HandleClientError(Exception e, TcpClient client, ISession session) {
         logger.LogError(e, "Error in StartClientAsync from {sessionId}", session.Id);
+        if (e is SocketException || e is IOException) {
+            StopClient(client, session);
+            return;
+        }
         var exceptionContext = new ActionExceptionContext(session, null, e);
         OnException?.Invoke(this, exceptionContext);
     }
