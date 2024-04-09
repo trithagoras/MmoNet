@@ -20,6 +20,6 @@ builder.Services.AddExceptionFilter<SampleExceptionFilter>();
 builder.Services.AddLogging(o => o.AddConsole());
 builder.Services.AddPacketRegistry<PacketRegistry>();
 
-var (app, _) = builder.Build();
+var (app, _) = builder.Build(tickRate);
 
-await app.StartAsync(port, tickRate);
+await app.StartAsync(port);

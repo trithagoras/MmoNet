@@ -10,8 +10,9 @@ public class ServerBuilder {
         Services = new();
     }
 
-    public (ServerApplication, ServiceProvider) Build() {
+    public (ServerApplication, ServiceProvider) Build(int tickRate) {
         Services.AddControllers();
+        Services.AddSingleton<IServerEngine>(new ServerEngine(tickRate));
 
         var serviceProvider = Services.BuildServiceProvider();
         var app = ActivatorUtilities.CreateInstance<ServerApplication>(serviceProvider, serviceProvider);

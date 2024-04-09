@@ -17,9 +17,10 @@ public class ServerApplication(IProtocolLayer protocolLayer,
     ILogger<ServerApplication> logger,
     IPacketRegistry packetRegistry,
     IServiceProvider serviceProvider,
-    IExceptionFilter exceptionFilter) {
+    IExceptionFilter exceptionFilter,
+    IServerEngine engine) {
 
-    public int TickRate { get; private set; }
+    int TickRate => engine.TickRate;
 
     // Maps packet id to tuple of controller action and required state if applied
     Dictionary<int, (MethodInfo, Type?)> ActionMap { get; set; } = [];
@@ -31,11 +32,12 @@ public class ServerApplication(IProtocolLayer protocolLayer,
     readonly ILogger<ServerApplication> logger = logger;
     readonly IPacketRegistry packetRegistry = packetRegistry;
     readonly IExceptionFilter exceptionFilter = exceptionFilter;
+    readonly IServerEngine engine = engine;
+
     readonly ConcurrentDictionary<Guid, IPacket> incomingPackets = new();
     readonly ConcurrentDictionary<Guid, IPacket> outgoingPackets = new();
 
-    public async Task StartAsync(int port, int tickRate) {
-        TickRate = tickRate;
+    public async Task StartAsync(int port) {
         protocolLayer.OnConnected += NewConnection;
         protocolLayer.OnDisconnected += Disconnection;
         protocolLayer.OnPacketSent += PacketSent;
@@ -159,35 +161,39 @@ public class ServerApplication(IProtocolLayer protocolLayer,
         }
     }
 
-    async Task StartTickLoop() {
+    public async Task StartTickLoop() {
         var desiredTickInterval = TimeSpan.FromMilliseconds(1000.0 / TickRate);
         var stopwatch = Stopwatch.StartNew();
+        var deltaTime = 0f;
 
         while (true) {
             stopwatch.Restart();
+
+            engine.Tick(deltaTime);
+
             await TickAsync();
 
             var elapsed = stopwatch.Elapsed;
             var diff = desiredTickInterval - elapsed;
-
             if (diff > TimeSpan.Zero) {
                 await Task.Delay(diff);
-            } else if (diff < TimeSpan.Zero) {
-                logger.LogWarning("Tick time budget exceeded by {diff} milliseconds", -diff.TotalMilliseconds);
+            } else {
+                logger.LogWarning("Tick time budget exceeded: {elapsed}", elapsed);
             }
+            deltaTime = (float)stopwatch.Elapsed.TotalSeconds;
         }
+    }
+
+    private async Task TickAsync() {
+        foreach (var packet in incomingPackets.Values) {
+            await DispatchPacket(packet);
+        }
+        incomingPackets.Clear();
     }
 
     // Current implementation means that the server will only handle one packet per session per tick
     void HandleIncomingPacket(IPacket packet) {
         incomingPackets[packet.SessionId] = packet;
-    }
-
-    async Task TickAsync() {
-        foreach (var packet in incomingPackets.Values) {
-            await DispatchPacket(packet);
-        }
-        incomingPackets.Clear();
     }
 
     void Disconnection(object? sender, ISession session) {
