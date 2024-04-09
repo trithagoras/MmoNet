@@ -33,16 +33,17 @@ public class TcpLayer(ISessionManager sessionManager, ISerializer serializer, IL
 
     public async Task BroadcastAsync(ISession session, IPacket packet) {
         var bytes = serializer.Serialize(packet);
-        foreach (var client in sessionClientMap.Values) {
+        foreach (var (id, client) in sessionClientMap) {
             if (client == sessionClientMap[session.Id]) {
                 continue;
             }
+            packet.SessionId = id;
             var stream = client.GetStream();
             await stream.WriteAsync(bytes);
             await stream.FlushAsync();
+            OnPacketSent?.Invoke(this, packet);
         }
         logger.LogInformation("Broadcasted packet {packet} to {count} sessions.", packet, sessionClientMap.Count - 1);
-        OnPacketSent?.Invoke(this, packet);
     }
 
     public async Task StartAsync(int port) {

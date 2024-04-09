@@ -184,7 +184,7 @@ public class ServerApplication(IProtocolLayer protocolLayer,
         }
     }
 
-    private async Task TickAsync() {
+    async Task TickAsync() {
         foreach (var packet in incomingPackets.Values) {
             await DispatchPacket(packet);
         }
